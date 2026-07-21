@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Invoice Intelligence — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F6FA;
+    --card: #FFFFFF;
+    --border: #E3E8F0;
+    --text: #1F2937;
+    --text-soft: #6B7280;
+    --sidebar: #16233F;
+    --sidebar-soft: #8E9BB8;
+    --accent: #D22630;
+    --blue: #2563EB;
+    --violet: #7C3AED;
+    --green: #059669;
+    --amber: #B45309;
+    --err: #DC2626;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --sans: 'Inter', system-ui, sans-serif;
+    --shadow: 0 1px 3px rgba(16,24,40,0.08), 0 1px 2px rgba(16,24,40,0.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 224px; background: var(--sidebar); color: #fff; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .main { flex: 1; min-width: 0; padding: 24px 28px 300px; }
+  @media (max-width: 860px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; padding: 10px 16px; gap: 14px; }
+    .sidebar nav, .sidebar .side-foot { display: none; }
+    .main { padding: 16px 14px 280px; }
+  }
+
+  .brand { padding: 22px 20px 18px; display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 8px; background: var(--accent); flex-shrink: 0; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #fff; }
+  .brand-name { font-weight: 700; font-size: 15px; line-height: 1.2; }
+  .brand-sub { font-size: 11px; color: var(--sidebar-soft); }
+  .sidebar nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .sidebar nav a { color: #CBD5E8; text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 9px 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .sidebar nav a:hover { background: rgba(255,255,255,0.07); color: #fff; }
+  .sidebar nav a.active { background: rgba(210,38,48,0.22); color: #fff; }
+  .nav-ico { width: 16px; text-align: center; opacity: 0.85; }
+  .side-foot { margin-top: auto; padding: 16px 20px 20px; font-size: 11.5px; color: var(--sidebar-soft); border-top: 1px solid rgba(255,255,255,0.08); }
+  .conn-pill { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-family: var(--mono); font-size: 11px; }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748B; flex-shrink: 0; }
+  .conn-dot.ok { background: #34D399; } .conn-dot.err { background: #F87171; }
+  .powered { font-weight: 600; color: #CBD5E8; }
+
+  .topbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .topbar h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; margin-right: auto; }
+  .search-box { position: relative; }
+  .search-box input { font-family: var(--sans); font-size: 13.5px; padding: 9px 12px 9px 34px; width: 300px; max-width: 60vw; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); }
+  .search-box::before { content: '⌕'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-soft); font-size: 16px; }
+  input:focus, select:focus, button:focus-visible, textarea:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  button { font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 9px 14px; cursor: pointer; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); }
+  button:hover { border-color: #C7CEDC; background: #F8FAFD; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #B71F28; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.mini { padding: 5px 9px; font-size: 12px; }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-soft); cursor: pointer; user-select: none; }
+  .updated { font-family: var(--mono); font-size: 11px; color: var(--text-soft); }
+
+  .settings-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 18px; margin-bottom: 22px; }
+  .settings-card h2 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .settings-card p.lede { font-size: 12.5px; color: var(--text-soft); margin-bottom: 16px; }
+  .field { margin-bottom: 12px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--text-soft); display: block; margin-bottom: 6px; }
+  .field input, .field select { width: 100%; font-family: var(--mono); font-size: 12.5px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: #FCFDFF; color: var(--text); }
+  .field .hint { font-size: 11.5px; color: var(--text-soft); margin-top: 5px; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  .settings-actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 16px; border-top: 3px solid var(--border); }
+  .stat.t-all { border-top-color: var(--accent); }
+  .stat.t-val { border-top-color: var(--blue); }
+  .stat.t-due { border-top-color: var(--amber); }
+  .stat.t-over { border-top-color: var(--err); }
+  .stat.t-flag { border-top-color: var(--violet); }
+  .stat .label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-soft); }
+  .stat .value { font-size: 25px; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .stat .sub { font-size: 12px; color: var(--text-soft); margin-top: 3px; font-variant-numeric: tabular-nums; }
+
+  .row2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin-bottom: 22px; }
+  @media (max-width: 1000px) { .row2 { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 22px; }
+  .panel h2 { font-size: 13.5px; font-weight: 700; padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .panel h2 .hint { font-size: 11.5px; font-weight: 500; color: var(--text-soft); }
+  .panel-body { padding: 16px; }
+
+  .chart { display: flex; align-items: flex-end; gap: 10px; height: 180px; padding-top: 8px; }
+  .chart .month { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; height: 100%; justify-content: flex-end; }
+  .bars { display: flex; align-items: flex-end; gap: 4px; height: 100%; width: 100%; justify-content: center; }
+  .bar { width: 18px; max-width: 34%; border-radius: 3px 3px 0 0; min-height: 3px; position: relative; background: var(--blue); }
+  .bar.v { background: var(--green); }
+  .bar:hover { filter: brightness(1.12); }
+  .bar[data-tip]:hover::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--sidebar); color: #fff; font-size: 11px; font-family: var(--mono); padding: 4px 7px; border-radius: 5px; white-space: nowrap; margin-bottom: 5px; z-index: 5; }
+  .month-lbl { font-size: 11px; color: var(--text-soft); font-family: var(--mono); white-space: nowrap; }
+  .legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--text-soft); margin-top: 10px; }
+  .legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 5px; }
+
+  .rank { display: flex; flex-direction: column; gap: 11px; }
+  .rank-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+  .rank-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-val { font-family: var(--mono); font-size: 12px; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+  .rank-track { grid-column: 1 / -1; height: 6px; background: #EEF1F7; border-radius: 3px; overflow: hidden; }
+  .rank-fill { height: 100%; background: var(--violet); border-radius: 3px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-soft); padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--text); }
+  td { padding: 12px 14px; border-bottom: 1px solid #F0F3F8; font-size: 13.5px; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.clickable { cursor: pointer; }
+  tbody tr.clickable:hover { background: #F8FAFD; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .mono { font-family: var(--mono); font-size: 12.5px; }
+  .muted { color: var(--text-soft); }
+  .truncate { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .table-wrap { overflow-x: auto; }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; text-transform: capitalize; }
+  .badge.invoice { background: #EFF4FF; color: var(--blue); }
+  .badge.credit_note { background: #F5F0FF; color: var(--violet); }
+  .badge.proforma { background: #FFF7ED; color: var(--amber); }
+  .badge.other { background: #F1F4F9; color: var(--text-soft); }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; font-family: var(--mono); }
+  .pill.ok { background: #ECFDF5; color: var(--green); }
+  .pill.warn { background: #FFFBEB; color: var(--amber); }
+  .pill.bad { background: #FEF2F2; color: var(--err); }
+
+  .pager { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-soft); }
+  .pager .spacer { margin-left: auto; }
+
+  .empty { padding: 44px 16px; text-align: center; color: var(--text-soft); }
+  .empty strong { display: block; color: var(--text); font-size: 15px; margin-bottom: 6px; }
+
+  /* drawer */
+  .scrim { position: fixed; inset: 0; background: rgba(15,23,42,0.42); opacity: 0; pointer-events: none; transition: opacity .16s; z-index: 40; }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .drawer { position: fixed; top: 0; right: 0; height: 100vh; width: 780px; max-width: 96vw; background: var(--bg); box-shadow: -8px 0 30px rgba(15,23,42,0.16); transform: translateX(100%); transition: transform .2s ease; z-index: 41; display: flex; flex-direction: column; }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px; }
+  .drawer-head h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  .drawer-head .sub { font-size: 12.5px; color: var(--text-soft); margin-top: 3px; }
+  .drawer-body { overflow-y: auto; padding: 18px 20px 60px; flex: 1; }
+  .tabs { display: flex; gap: 4px; padding: 0 20px; background: var(--card); border-bottom: 1px solid var(--border); }
+  .tab { padding: 10px 13px; font-size: 13px; font-weight: 600; color: var(--text-soft); border-bottom: 2px solid transparent; cursor: pointer; background: none; border-radius: 0; border-top: none; border-left: none; border-right: none; }
+  .tab:hover { color: var(--text); background: none; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tabpane { display: none; } .tabpane.active { display: block; }
+
+  .kv { display: grid; grid-template-columns: 150px 1fr; gap: 8px 14px; font-size: 13.5px; }
+  .kv dt { color: var(--text-soft); font-size: 12.5px; }
+  .kv dd { font-weight: 500; word-break: break-word; }
+  .party-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .party-grid { grid-template-columns: 1fr; } .kv { grid-template-columns: 110px 1fr; } }
+  .totals-line { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13.5px; border-bottom: 1px dashed #E8EDF5; }
+  .totals-line:last-child { border-bottom: none; }
+  .totals-line.grand { font-weight: 800; font-size: 15px; border-top: 2px solid var(--border); margin-top: 6px; padding-top: 11px; }
+  .totals-line .num { text-align: right; }
+
+  pre.raw { font-family: var(--mono); font-size: 12px; line-height: 1.55; background: #0F172A; color: #E2E8F0; padding: 14px; border-radius: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 62vh; overflow-y: auto; }
+  pre.rawtext { background: var(--card); color: var(--text); border: 1px solid var(--border); white-space: pre; overflow-x: auto; }
+
+  /* log console */
+  .console { position: fixed; left: 224px; right: 0; bottom: 0; background: #0F172A; color: #CBD5E1; border-top: 1px solid #1E293B; z-index: 30; font-family: var(--mono); font-size: 11.5px; max-height: 46vh; display: flex; flex-direction: column; }
+  @media (max-width: 860px) { .console { left: 0; } }
+  .console.collapsed .log-body { display: none; }
+  .console-head { display: flex; align-items: center; gap: 9px; padding: 7px 14px; cursor: pointer; user-select: none; border-bottom: 1px solid #1E293B; }
+  .console-head .dot { width: 8px; height: 8px; border-radius: 50%; background: #64748B; }
+  .console-head .dot.ok { background: #34D399; } .console-head .dot.err { background: #F87171; }
+  .console-head .ttl { font-weight: 600; color: #E2E8F0; }
+  .console-head .sp { margin-left: auto; }
+  .console-head button { background: #1E293B; border-color: #334155; color: #CBD5E1; padding: 3px 8px; font-size: 11px; font-family: var(--mono); }
+  .log-body { overflow-y: auto; padding: 8px 14px 12px; }
+  .log-line { padding: 2px 0; display: flex; gap: 8px; align-items: baseline; }
+  .log-time { color: #64748B; flex-shrink: 0; }
+  .log-badge { flex-shrink: 0; font-weight: 600; }
+  .log-badge.info { color: #60A5FA; } .log-badge.ok { color: #34D399; }
+  .log-badge.warn { color: #FBBF24; } .log-badge.err { color: #F87171; }
+  .log-badge.sql { color: #C084FC; }
+  .log-msg { word-break: break-word; }
+  .log-detail { color: #64748B; padding: 0 0 3px 92px; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">PDF</div>
+      <div>
+        <div class="brand-name">Invoice Intelligence</div>
+        <div class="brand-sub">PDF → Postgres</div>
+      </div>
+    </div>
+    <nav>
+      <a class="active" data-view="dash" data-jump="stats-top"><span class="nav-ico">▤</span> Dashboard</a>
+      <a data-view="dash" data-jump="reports"><span class="nav-ico">◈</span> Reports</a>
+      <a data-view="dash" data-jump="invoices"><span class="nav-ico">≡</span> Invoices</a>
+      <a data-view="settings"><span class="nav-ico">⚙</span> Settings</a>
+    </nav>
+    <div class="side-foot">
+      <div class="conn-pill"><span class="conn-dot" id="conn-dot"></span><span id="conn-label">not connected</span></div>
+      <div class="powered">Powered by Amplify Fusion</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1 id="page-title">Invoice Intelligence</h1>
+      <div class="search-box"><input id="search" type="search" placeholder="Search invoice #, seller, buyer, file…" disabled></div>
+      <label class="toggle"><input type="checkbox" id="auto"> auto-refresh</label>
+      <span class="updated" id="updated"></span>
+      <button id="refresh" class="primary" disabled>Refresh</button>
+    </div>
+
+    <!-- ===== settings ===== -->
+    <div id="view-settings">
+    <section class="settings-card" id="settings-card">
+      <h2>Connect to your database</h2>
+      <p class="lede">Everything below is read from the browser using the Neon HTTP driver. Nothing is stored or sent anywhere else.</p>
+
+      <div class="field">
+        <label for="conn-string">Neon connection string</label>
+        <input id="conn-string" type="password" placeholder="postgresql://user:password@ep-xxx-pooler.region.aws.neon.tech/dbname?sslmode=require" autocomplete="off" spellcheck="false">
+        <div class="hint">Use a pooled endpoint (hostname contains <code>-pooler</code>). A read-only role is recommended.</div>
+      </div>
+
+      <div class="grid3">
+        <div class="field">
+          <label for="cfg-table">Table name</label>
+          <input id="cfg-table" value="pdfinvoices" spellcheck="false">
+          <div class="hint">Schema-qualify if needed.</div>
+        </div>
+        <div class="field">
+          <label for="cfg-schema">Schema</label>
+          <input id="cfg-schema" value="public" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="cfg-page">Rows per page</label>
+          <input id="cfg-page" type="number" min="5" max="200" value="20">
+        </div>
+        <div class="field">
+          <label for="cfg-months">Trend window (months)</label>
+          <input id="cfg-months" type="number" min="3" max="36" value="12">
+        </div>
+        <div class="field">
+          <label for="cfg-variance">Variance tolerance</label>
+          <input id="cfg-variance" type="number" min="0" step="0.01" value="0.01">
+          <div class="hint">Rounding slack for audit reports.</div>
+        </div>
+        <div class="field">
+          <label for="cfg-refresh">Auto-refresh (seconds)</label>
+          <input id="cfg-refresh" type="number" min="5" max="600" value="30">
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button class="primary" id="connect">Connect</button>
+        <button id="disconnect" style="display:none">Disconnect</button>
+        <button id="apply" style="display:none">Apply settings</button>
+        <button id="back-to-dash" style="display:none">Back to dashboard</button>
+      </div>
+    </section>
+    </div>
+
+    <div id="dash" style="display:none">
+      <div id="stats-top"></div>
+      <!-- ===== stats ===== -->
+      <div class="stats">
+        <div class="stat t-all"><div class="label">Invoices</div><div class="value" id="s-count">—</div><div class="sub" id="s-count-sub"></div></div>
+        <div class="stat t-val"><div class="label">Total billed</div><div class="value" id="s-billed">—</div><div class="sub" id="s-billed-sub"></div></div>
+        <div class="stat t-due"><div class="label">Outstanding</div><div class="value" id="s-due">—</div><div class="sub" id="s-due-sub"></div></div>
+        <div class="stat t-over"><div class="label">Overdue</div><div class="value" id="s-overdue">—</div><div class="sub" id="s-overdue-sub"></div></div>
+        <div class="stat t-flag"><div class="label">Needs review</div><div class="value" id="s-flag">—</div><div class="sub" id="s-flag-sub"></div></div>
+      </div>
+
+      <!-- ===== charts ===== -->
+      <div class="row2">
+        <section class="panel" style="margin:0">
+          <h2>Invoice volume &amp; value<span class="hint" id="trend-hint"></span></h2>
+          <div class="panel-body">
+            <div class="chart" id="chart"></div>
+            <div class="legend"><span><i style="background:var(--blue)"></i>invoices</span><span><i style="background:var(--green)"></i>total due</span></div>
+          </div>
+        </section>
+        <section class="panel" style="margin:0">
+          <h2>Top sellers<span class="hint">by total due</span></h2>
+          <div class="panel-body"><div class="rank" id="sellers"></div></div>
+        </section>
+      </div>
+
+      <!-- ===== reports ===== -->
+      <div id="reports">
+        <section class="panel">
+          <h2>Payables aging<span class="hint">grouped by due date</span></h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Bucket</th><th class="num">Invoices</th><th class="num">Amount</th><th style="width:38%">Share</th></tr></thead>
+            <tbody id="aging"></tbody>
+          </table></div>
+        </section>
+
+        <section class="panel">
+          <h2>Line-item arithmetic audit<span class="hint">printed subtotal vs sum of line items</span></h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Invoice</th><th>Seller</th><th class="num">Printed</th><th class="num">Computed</th><th class="num">Variance</th></tr></thead>
+            <tbody id="audit-lines"></tbody>
+          </table></div>
+        </section>
+
+        <section class="panel">
+          <h2>Totals reconciliation<span class="hint">total due vs grand total + prior balance − paid</span></h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Invoice</th><th class="num">Grand total</th><th class="num">Prior balance</th><th class="num">Paid</th><th class="num">Total due</th><th class="num">Variance</th></tr></thead>
+            <tbody id="audit-totals"></tbody>
+          </table></div>
+        </section>
+
+        <section class="panel">
+          <h2>Extraction completeness<span class="hint">null rate by field across all rows</span></h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Field</th><th class="num">Populated</th><th class="num">Missing</th><th style="width:40%">Coverage</th></tr></thead>
+            <tbody id="coverage"></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <!-- ===== invoice list ===== -->
+      <section class="panel" id="invoices">
+        <h2>Invoices<span class="hint" id="list-hint"></span></h2>
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th class="sortable" data-sort="invoice_number">Invoice #</th>
+            <th class="sortable" data-sort="seller_name">Seller</th>
+            <th class="sortable" data-sort="buyer_name">Buyer</th>
+            <th class="sortable" data-sort="issue_date">Issued</th>
+            <th class="sortable" data-sort="due_date">Due</th>
+            <th class="num">Lines</th>
+            <th class="num sortable" data-sort="total_due">Total due</th>
+            <th>Status</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+        <div class="pager">
+          <span id="page-info">—</span>
+          <span class="spacer"></span>
+          <button class="mini" id="prev" disabled>Previous</button>
+          <button class="mini" id="next" disabled>Next</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- ===== detail drawer ===== -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0">
+      <h3 id="d-title">—</h3>
+      <div class="sub" id="d-sub"></div>
+    </div>
+    <button id="d-close">Close</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-pane="p-overview">Overview</button>
+    <button class="tab" data-pane="p-lines">Line items</button>
+    <button class="tab" data-pane="p-json">Raw JSON</button>
+    <button class="tab" data-pane="p-text">Parsed text</button>
+  </div>
+  <div class="drawer-body">
+    <div class="tabpane active" id="p-overview"></div>
+    <div class="tabpane" id="p-lines"></div>
+    <div class="tabpane" id="p-json"></div>
+    <div class="tabpane" id="p-text"></div>
+  </div>
+</aside>
+
+<!-- ===== console ===== -->
+<div class="console collapsed" id="console">
+  <div class="console-head" id="console-head">
+    <span class="dot" id="log-dot"></span>
+    <span class="ttl">Query log</span>
+    <span class="sp"></span>
+    <button id="log-copy">Copy</button>
+    <button id="log-clear">Clear</button>
+    <button id="log-toggle">Show</button>
+  </div>
+  <div class="log-body" id="log-body"></div>
+</div>
+
+<script type="module">
+/* ============================================================
+   Defaults — every one of these is editable in the UI.
+   ============================================================ */
+const DEFAULTS = {
+  connectionString: '',
+  schema: 'public',
+  table: 'pdfinvoices',
+  pageSize: 20,
+  trendMonths: 12,
+  varianceTolerance: 0.01,
+  refreshSeconds: 30
+};
+const DRIVER_URL = 'https://esm.sh/@neondatabase/serverless';
+
+const cfg = { ...DEFAULTS };
+let sql = null, driverMod = null, refreshTimer = null, searchTimer = null;
+const state = { search: '', sort: 'issue_date', order: 'desc', page: 1, total: 0, current: null };
+
+/* ---------- logging ---------- */
+const logBody = document.getElementById('log-body');
+const logLines = [];
+function log(level, msg, detail) {
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${time}</span><span class="log-badge ${level}">[${level.toUpperCase()}]</span><span class="log-msg"></span>`;
+  line.querySelector('.log-msg').textContent = msg;
+  logBody.appendChild(line);
+  if (detail) { const d = document.createElement('div'); d.className = 'log-detail'; d.textContent = detail; logBody.appendChild(d); }
+  logLines.push(`${time} [${level.toUpperCase()}] ${msg}${detail ? '\n  └ ' + detail : ''}`);
+  logBody.scrollTop = logBody.scrollHeight;
+  const dot = document.getElementById('log-dot');
+  if (level === 'err') dot.className = 'dot err';
+  else if (level === 'ok' && dot.className !== 'dot err') dot.className = 'dot ok';
+}
+const oneLine = s => s.replace(/\s+/g, ' ').trim().slice(0, 320);
+
+async function q(label, text, params = []) {
+  if (!sql) throw new Error('Not connected');
+  const t0 = performance.now();
+  try {
+    const rows = await sql.query(text, params);
+    log('sql', `${label} → ${rows.length} row${rows.length === 1 ? '' : 's'} in ${(performance.now() - t0).toFixed(0)}ms`,
+        oneLine(text) + (params.length ? `  params: ${JSON.stringify(params)}` : ''));
+    return rows;
+  } catch (e) {
+    log('err', `${label} failed — ${e.code ? 'code=' + e.code + ' | ' : ''}${e.message}`, oneLine(text));
+    throw e;
+  }
+}
+
+/* ---------- helpers ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const n = v => (v === null || v === undefined || v === '' ? null : Number(v));
+
+function money(v, currency) {
+  const x = n(v);
+  if (x === null || Number.isNaN(x)) return '—';
+  try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 2 }).format(x); }
+  catch { return x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+}
+function compact(v, currency) {
+  const x = n(v);
+  if (x === null || Number.isNaN(x)) return '—';
+  const abs = Math.abs(x);
+  const sym = currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+  if (abs >= 1e6) return sym + (x / 1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return sym + (x / 1e3).toFixed(1) + 'K';
+  return sym + x.toFixed(0);
+}
+function dateStr(v) {
+  if (!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if (Number.isNaN(d.getTime())) return esc(String(v));
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+function num(v, digits = 2) {
+  const x = n(v);
+  if (x === null || Number.isNaN(x)) return '—';
+  return x.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+function typeBadge(t) {
+  const k = ['invoice', 'credit_note', 'proforma'].includes(t) ? t : 'other';
+  return `<span class="badge ${k}">${esc((t || 'unknown').replace(/_/g, ' '))}</span>`;
+}
+function dueStatus(row) {
+  const due = row.due_date ? new Date(row.due_date) : null;
+  const amt = n(row.total_due);
+  if (!due || Number.isNaN(due.getTime())) return '<span class="pill">no due date</span>';
+  const days = Math.floor((Date.now() - due.getTime()) / 86400000);
+  if (amt !== null && amt <= 0) return '<span class="pill ok">settled</span>';
+  if (days > 0) return `<span class="pill bad">${days}d overdue</span>`;
+  if (days > -14) return `<span class="pill warn">due in ${Math.abs(days)}d</span>`;
+  return '<span class="pill ok">current</span>';
+}
+function relTime(v) {
+  if (!v) return '';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '';
+  const s = (Date.now() - d.getTime()) / 1000;
+  if (s < 60) return Math.floor(s) + 's ago';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+/* identifiers cannot be bound as parameters — validate then quote */
+function ident(s) {
+  if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(s)) throw new Error(`Invalid identifier: ${s}`);
+  return '"' + s + '"';
+}
+const T = () => `${ident(cfg.schema)}.${ident(cfg.table)}`;
+
+/* ---------- settings ---------- */
+function readSettings() {
+  const g = id => document.getElementById(id).value.trim();
+  cfg.schema = g('cfg-schema') || 'public';
+  cfg.table = g('cfg-table') || 'pdfinvoices';
+  cfg.pageSize = Math.min(200, Math.max(5, parseInt(g('cfg-page'), 10) || 20));
+  cfg.trendMonths = Math.min(36, Math.max(3, parseInt(g('cfg-months'), 10) || 12));
+  cfg.varianceTolerance = Math.max(0, parseFloat(g('cfg-variance')) || 0);
+  cfg.refreshSeconds = Math.min(600, Math.max(5, parseInt(g('cfg-refresh'), 10) || 30));
+}
+function setConn(label, err, ok) {
+  document.getElementById('conn-label').textContent = label;
+  document.getElementById('conn-dot').className = 'conn-dot' + (err ? ' err' : ok ? ' ok' : '');
+}
+
+/* ---------- connect ---------- */
+async function connect() {
+  const cs = document.getElementById('conn-string').value.trim() || DEFAULTS.connectionString;
+  readSettings();
+  setConn('connecting…');
+  if (!cs) { log('err', 'Connection string is empty. Paste one above and press Connect.'); setConn('not connected'); return; }
+  if (!/^postgres(ql)?:\/\//.test(cs)) { log('err', 'Connection string must start with postgresql://'); setConn('bad string', true); return; }
+  try {
+    const u = new URL(cs.replace(/^postgres(ql)?:/, 'https:'));
+    log('info', `Target — host ${u.hostname}, db ${u.pathname.slice(1)}, user ${u.username}`);
+    if (!u.hostname.includes('neon.tech')) log('warn', 'Host is not *.neon.tech — the HTTP driver needs a Neon endpoint.');
+    else if (!u.hostname.includes('-pooler')) log('warn', 'Hostname has no "-pooler" — the pooled endpoint is recommended.');
+  } catch { log('warn', 'Could not parse the connection string as a URL — trying anyway.'); }
+
+  if (!driverMod) {
+    log('info', 'Loading Neon driver…');
+    try { driverMod = await import(DRIVER_URL); log('ok', 'Driver loaded.'); }
+    catch (e) { log('err', 'Driver failed to load. Check network, CSP, or ad-blockers. ' + e.message); setConn('driver failed', true); return; }
+  }
+  try { sql = driverMod.neon(cs); }
+  catch (e) { log('err', 'Driver rejected the connection string: ' + e.message); setConn('bad string', true); return; }
+
+  let info;
+  try { info = await q('Connectivity test', 'SELECT current_database() AS db, current_user AS usr'); }
+  catch (e) {
+    const m = (e.message || '').toLowerCase();
+    if (e.code === '28P01' || m.includes('password')) log('err', 'Authentication failed. Check the role and password.');
+    else if (e.code === '3D000') log('err', 'That database does not exist.');
+    else if (m.includes('fetch')) log('err', 'Network failure. Check the hostname and any ad-blocker.');
+    setConn('failed', true); return;
+  }
+  setConn(`${info[0].usr} @ ${info[0].db}`, false, true);
+
+  try {
+    const cols = await q('Verify table',
+      `SELECT column_name FROM information_schema.columns WHERE table_schema=$1 AND table_name=$2`,
+      [cfg.schema, cfg.table]);
+    if (!cols.length) {
+      log('err', `Table ${cfg.schema}.${cfg.table} not found, or the role has no SELECT on it. Fix: GRANT SELECT ON ${cfg.schema}.${cfg.table} TO <role>;`);
+      setConn('table missing', true); return;
+    }
+    const have = cols.map(c => c.column_name);
+    const expected = ['invoice_number','invoice_type','issue_date','due_date','currency','seller_name','buyer_name',
+                      'subtotal','total_charges','total_tax','grand_total','prior_balance','amount_paid','total_due',
+                      'line_items','charges','raw_json','raw_text','source_filename','model','created_at'];
+    const missing = expected.filter(c => !have.includes(c));
+    log('ok', `${cfg.schema}.${cfg.table} verified — ${have.length} columns.`);
+    if (missing.length) log('warn', 'Columns not found, related features will be blank: ' + missing.join(', '));
+  } catch { setConn('verify failed', true); return; }
+
+  document.getElementById('connect').style.display = 'none';
+  document.getElementById('disconnect').style.display = '';
+  document.getElementById('apply').style.display = '';
+  document.getElementById('back-to-dash').style.display = '';
+  document.getElementById('search').disabled = false;
+  document.getElementById('refresh').disabled = false;
+  showView('dash');
+  await refreshAll();
+}
+
+/* ---------- view routing ---------- */
+let currentView = 'settings';
+function showView(view, jumpTo) {
+  if (view === 'dash' && !sql) view = 'settings';
+  currentView = view;
+  document.getElementById('dash').style.display = view === 'dash' ? '' : 'none';
+  document.getElementById('view-settings').style.display = view === 'settings' ? '' : 'none';
+  document.getElementById('page-title').textContent = view === 'settings' ? 'Settings' : 'Invoice Intelligence';
+  document.querySelectorAll('.sidebar nav a').forEach(a => {
+    const match = a.dataset.view === view && (view !== 'dash' || !jumpTo || a.dataset.jump === jumpTo);
+    a.classList.toggle('active', !!match);
+  });
+  if (view === 'dash' && jumpTo) {
+    document.getElementById(jumpTo)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function disconnect() {
+  sql = null;
+  stopAuto();
+  document.getElementById('connect').style.display = '';
+  document.getElementById('disconnect').style.display = 'none';
+  document.getElementById('apply').style.display = 'none';
+  document.getElementById('back-to-dash').style.display = 'none';
+  showView('settings');
+  document.getElementById('search').disabled = true;
+  document.getElementById('refresh').disabled = true;
+  document.getElementById('auto').checked = false;
+  setConn('not connected');
+  log('info', 'Disconnected.');
+}
+
+/* ---------- refresh ---------- */
+async function refreshAll() {
+  const t0 = performance.now();
+  try {
+    await Promise.all([loadStats(), loadTrend(), loadSellers(), loadAging(), loadAudits(), loadCoverage(), loadList()]);
+  } catch { log('err', 'Refresh incomplete — see the failed query above.'); return; }
+  log('ok', `Refreshed in ${(performance.now() - t0).toFixed(0)}ms`);
+  document.getElementById('updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+}
+
+async function loadStats() {
+  const rows = await q('Headline stats', `
+    SELECT COUNT(*)::int AS n,
+           COUNT(DISTINCT seller_name)::int AS sellers,
+           COALESCE(SUM(grand_total), 0) AS billed,
+           COALESCE(SUM(total_due), 0) AS due,
+           COUNT(*) FILTER (WHERE due_date < CURRENT_DATE AND COALESCE(total_due,0) > 0)::int AS overdue_n,
+           COALESCE(SUM(total_due) FILTER (WHERE due_date < CURRENT_DATE AND COALESCE(total_due,0) > 0), 0) AS overdue_amt,
+           COUNT(*) FILTER (WHERE invoice_number IS NULL OR total_due IS NULL OR issue_date IS NULL
+                              OR jsonb_array_length(COALESCE(line_items,'[]'::jsonb)) = 0)::int AS flagged
+    FROM ${T()}`);
+  const r = rows[0] || {};
+  const set = (id, v, sub) => {
+    document.getElementById(id).textContent = v;
+    const s = document.getElementById(id + '-sub'); if (s) s.textContent = sub || '';
+  };
+  set('s-count', r.n ?? 0, `${r.sellers ?? 0} seller${r.sellers === 1 ? '' : 's'}`);
+  set('s-billed', compact(r.billed), money(r.billed) + ' billed');
+  set('s-due', compact(r.due), money(r.due) + ' outstanding');
+  set('s-overdue', r.overdue_n ?? 0, money(r.overdue_amt) + ' past due');
+  set('s-flag', r.flagged ?? 0, 'missing key fields or line items');
+}
+
+async function loadTrend() {
+  const rows = await q('Monthly trend', `
+    SELECT to_char(date_trunc('month', issue_date), 'YYYY-MM') AS ym,
+           COUNT(*)::int AS n,
+           COALESCE(SUM(total_due), 0) AS amt
+    FROM ${T()}
+    WHERE issue_date >= (date_trunc('month', CURRENT_DATE) - ($1 || ' months')::interval)
+    GROUP BY 1 ORDER BY 1`, [String(cfg.trendMonths - 1)]);
+  const el = document.getElementById('chart');
+  document.getElementById('trend-hint').textContent = `last ${cfg.trendMonths} months`;
+  if (!rows.length) { el.innerHTML = '<div class="empty" style="margin:auto">No invoices with an issue date yet.</div>'; return; }
+  const maxN = Math.max(...rows.map(r => r.n), 1);
+  const maxA = Math.max(...rows.map(r => Number(r.amt)), 1);
+  el.innerHTML = rows.map(r => {
+    const label = new Date(r.ym + '-01T00:00:00Z').toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+    return `<div class="month">
+      <div class="bars">
+        <div class="bar" style="height:${(r.n / maxN * 100).toFixed(1)}%" data-tip="${r.n} invoice${r.n === 1 ? '' : 's'}"></div>
+        <div class="bar v" style="height:${(Number(r.amt) / maxA * 100).toFixed(1)}%" data-tip="${esc(money(r.amt))}"></div>
+      </div>
+      <div class="month-lbl">${esc(label)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadSellers() {
+  const rows = await q('Top sellers', `
+    SELECT COALESCE(seller_name, '(unknown)') AS seller,
+           COUNT(*)::int AS n,
+           COALESCE(SUM(total_due), 0) AS amt
+    FROM ${T()} GROUP BY 1 ORDER BY amt DESC NULLS LAST LIMIT 8`);
+  const el = document.getElementById('sellers');
+  if (!rows.length) { el.innerHTML = '<div class="empty">Nothing to rank yet.</div>'; return; }
+  const max = Math.max(...rows.map(r => Number(r.amt)), 1);
+  el.innerHTML = rows.map(r => `
+    <div class="rank-row">
+      <div class="rank-name" title="${esc(r.seller)}">${esc(r.seller)}</div>
+      <div class="rank-val">${esc(money(r.amt))} · ${r.n}</div>
+      <div class="rank-track"><div class="rank-fill" style="width:${(Number(r.amt) / max * 100).toFixed(1)}%"></div></div>
+    </div>`).join('');
+}
+
+async function loadAging() {
+  const rows = await q('Payables aging', `
+    SELECT bucket, COUNT(*)::int AS n, COALESCE(SUM(total_due),0) AS amt FROM (
+      SELECT total_due,
+        CASE
+          WHEN due_date IS NULL THEN 'No due date'
+          WHEN due_date >= CURRENT_DATE THEN 'Not yet due'
+          WHEN CURRENT_DATE - due_date <= 30 THEN '1–30 days'
+          WHEN CURRENT_DATE - due_date <= 60 THEN '31–60 days'
+          WHEN CURRENT_DATE - due_date <= 90 THEN '61–90 days'
+          ELSE '90+ days'
+        END AS bucket
+      FROM ${T()}
+    ) b GROUP BY bucket`);
+  const order = ['Not yet due', '1–30 days', '31–60 days', '61–90 days', '90+ days', 'No due date'];
+  const by = Object.fromEntries(rows.map(r => [r.bucket, r]));
+  const total = rows.reduce((a, r) => a + Number(r.amt), 0) || 1;
+  const colors = { 'Not yet due': 'var(--green)', '1–30 days': 'var(--amber)', '31–60 days': '#EA580C', '61–90 days': '#DC2626', '90+ days': '#991B1B', 'No due date': '#94A3B8' };
+  document.getElementById('aging').innerHTML = order.map(k => {
+    const r = by[k] || { n: 0, amt: 0 };
+    const pct = Number(r.amt) / total * 100;
+    return `<tr>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${colors[k]};margin-right:8px"></span>${k}</td>
+      <td class="num">${r.n}</td>
+      <td class="num">${esc(money(r.amt))}</td>
+      <td><div class="rank-track"><div class="rank-fill" style="width:${pct.toFixed(1)}%;background:${colors[k]}"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadAudits() {
+  const tol = cfg.varianceTolerance;
+
+  const lines = await q('Line-item audit', `
+    SELECT i.id, i.invoice_number, i.seller_name, i.currency, i.subtotal AS printed, s.computed
+    FROM ${T()} i
+    CROSS JOIN LATERAL (
+      SELECT COALESCE(SUM((li->>'lineTotal')::numeric), 0) AS computed
+      FROM jsonb_array_elements(COALESCE(i.line_items, '[]'::jsonb)) AS li
+      WHERE li->>'lineTotal' IS NOT NULL
+    ) s
+    WHERE i.subtotal IS NOT NULL
+      AND jsonb_array_length(COALESCE(i.line_items,'[]'::jsonb)) > 0
+      AND ABS(i.subtotal - s.computed) > $1
+    ORDER BY ABS(i.subtotal - s.computed) DESC LIMIT 25`, [tol]);
+  document.getElementById('audit-lines').innerHTML = lines.length ? lines.map(r => `
+    <tr class="clickable" data-id="${r.id}">
+      <td class="mono">${esc(r.invoice_number || '—')}</td>
+      <td class="truncate">${esc(r.seller_name || '—')}</td>
+      <td class="num">${esc(money(r.printed, r.currency))}</td>
+      <td class="num">${esc(money(r.computed, r.currency))}</td>
+      <td class="num"><span class="pill bad">${esc(num(Number(r.printed) - Number(r.computed)))}</span></td>
+    </tr>`).join('')
+    : `<tr><td colspan="5" class="empty" style="padding:26px">Every invoice reconciles. Line items sum to the printed subtotal.</td></tr>`;
+
+  const totals = await q('Totals reconciliation', `
+    SELECT id, invoice_number, currency, grand_total, prior_balance, amount_paid, total_due,
+           total_due - (COALESCE(grand_total,0) + COALESCE(prior_balance,0) - COALESCE(amount_paid,0)) AS variance
+    FROM ${T()}
+    WHERE total_due IS NOT NULL AND grand_total IS NOT NULL
+      AND ABS(total_due - (COALESCE(grand_total,0) + COALESCE(prior_balance,0) - COALESCE(amount_paid,0))) > $1
+    ORDER BY ABS(total_due - (COALESCE(grand_total,0) + COALESCE(prior_balance,0) - COALESCE(amount_paid,0))) DESC
+    LIMIT 25`, [tol]);
+  document.getElementById('audit-totals').innerHTML = totals.length ? totals.map(r => `
+    <tr class="clickable" data-id="${r.id}">
+      <td class="mono">${esc(r.invoice_number || '—')}</td>
+      <td class="num">${esc(money(r.grand_total, r.currency))}</td>
+      <td class="num">${esc(money(r.prior_balance, r.currency))}</td>
+      <td class="num">${esc(money(r.amount_paid, r.currency))}</td>
+      <td class="num">${esc(money(r.total_due, r.currency))}</td>
+      <td class="num"><span class="pill bad">${esc(num(r.variance))}</span></td>
+    </tr>`).join('')
+    : `<tr><td colspan="6" class="empty" style="padding:26px">All totals reconcile.</td></tr>`;
+}
+
+async function loadCoverage() {
+  const rows = await q('Field coverage', `
+    SELECT COUNT(*)::int AS total,
+      COUNT(invoice_number)::int AS invoice_number,
+      COUNT(issue_date)::int AS issue_date,
+      COUNT(due_date)::int AS due_date,
+      COUNT(seller_name)::int AS seller_name,
+      COUNT(seller_tax_id)::int AS seller_tax_id,
+      COUNT(buyer_name)::int AS buyer_name,
+      COUNT(subtotal)::int AS subtotal,
+      COUNT(total_tax)::int AS total_tax,
+      COUNT(grand_total)::int AS grand_total,
+      COUNT(total_due)::int AS total_due,
+      COUNT(*) FILTER (WHERE jsonb_array_length(COALESCE(line_items,'[]'::jsonb)) > 0)::int AS line_items,
+      COUNT(raw_text)::int AS raw_text
+    FROM ${T()}`);
+  const r = rows[0] || { total: 0 };
+  const total = r.total || 0;
+  const fields = ['invoice_number','issue_date','due_date','seller_name','seller_tax_id','buyer_name',
+                  'subtotal','total_tax','grand_total','total_due','line_items','raw_text'];
+  document.getElementById('coverage').innerHTML = total === 0
+    ? `<tr><td colspan="4" class="empty" style="padding:26px">No rows yet.</td></tr>`
+    : fields.map(f => {
+        const have = r[f] || 0, miss = total - have, pct = have / total * 100;
+        const color = pct >= 95 ? 'var(--green)' : pct >= 60 ? 'var(--amber)' : 'var(--err)';
+        return `<tr>
+          <td class="mono">${f}</td>
+          <td class="num">${have}</td>
+          <td class="num">${miss ? `<span class="muted">${miss}</span>` : '—'}</td>
+          <td><div class="rank-track"><div class="rank-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div></td>
+        </tr>`;
+      }).join('');
+}
+
+const SORTABLE = ['invoice_number','seller_name','buyer_name','issue_date','due_date','total_due','created_at'];
+async function loadList() {
+  const where = [], params = [];
+  if (state.search) {
+    params.push('%' + state.search + '%');
+    where.push(`(invoice_number ILIKE $${params.length} OR seller_name ILIKE $${params.length}
+                 OR buyer_name ILIKE $${params.length} OR source_filename ILIKE $${params.length})`);
+  }
+  const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+  const cnt = await q('Count invoices', `SELECT COUNT(*)::int AS n FROM ${T()} ${whereSql}`, params);
+  state.total = cnt[0].n;
+  const pages = Math.max(1, Math.ceil(state.total / cfg.pageSize));
+  if (state.page > pages) state.page = pages;
+
+  const sortCol = SORTABLE.includes(state.sort) ? state.sort : 'issue_date';
+  const dir = state.order === 'asc' ? 'ASC' : 'DESC';
+  const rows = await q('List invoices', `
+    SELECT id, invoice_number, invoice_type, seller_name, buyer_name, issue_date, due_date,
+           currency, total_due, source_filename, created_at,
+           jsonb_array_length(COALESCE(line_items,'[]'::jsonb)) AS lines
+    FROM ${T()} ${whereSql}
+    ORDER BY ${ident(sortCol)} ${dir} NULLS LAST, id DESC
+    LIMIT ${cfg.pageSize} OFFSET ${(state.page - 1) * cfg.pageSize}`, params);
+
+  document.getElementById('list-hint').textContent =
+    state.total + (state.search ? ' matching' : '') + ' invoice' + (state.total === 1 ? '' : 's');
+
+  const tb = document.getElementById('rows');
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="8" class="empty">
+        <strong>${state.search ? 'No invoices match that search' : 'No invoices yet'}</strong>
+        ${state.search ? 'Try a different invoice number, seller, or filename.' : 'Run a PDF through the Fusion pipeline and it will appear here.'}
+      </td></tr>`;
+  } else {
+    tb.innerHTML = rows.map(r => `
+      <tr class="clickable" data-id="${r.id}">
+        <td><div class="mono">${esc(r.invoice_number || '—')}</div><div class="muted" style="font-size:11.5px">${typeBadge(r.invoice_type)}</div></td>
+        <td class="truncate" title="${esc(r.seller_name || '')}">${esc(r.seller_name || '—')}</td>
+        <td class="truncate" title="${esc(r.buyer_name || '')}">${esc(r.buyer_name || '—')}</td>
+        <td class="mono">${esc(dateStr(r.issue_date))}</td>
+        <td class="mono">${esc(dateStr(r.due_date))}</td>
+        <td class="num">${r.lines ?? 0}</td>
+        <td class="num"><strong>${esc(money(r.total_due, r.currency))}</strong></td>
+        <td>${dueStatus(r)}</td>
+      </tr>`).join('');
+  }
+
+  document.getElementById('page-info').textContent =
+    state.total === 0 ? 'No rows' : `Page ${state.page} of ${pages} · ${state.total} row${state.total === 1 ? '' : 's'}`;
+  document.getElementById('prev').disabled = state.page <= 1;
+  document.getElementById('next').disabled = state.page >= pages;
+
+  document.querySelectorAll('th.sortable').forEach(th => {
+    const active = th.dataset.sort === sortCol;
+    th.style.color = active ? 'var(--text)' : '';
+    th.textContent = th.textContent.replace(/ [▲▼]$/, '') + (active ? (dir === 'ASC' ? ' ▲' : ' ▼') : '');
+  });
+}
+
+/* ---------- detail drawer ---------- */
+async function openInvoice(id) {
+  const rows = await q('Load invoice', `SELECT * FROM ${T()} WHERE id = $1`, [Number(id)]);
+  if (!rows.length) { log('warn', 'That invoice is no longer in the table.'); return; }
+  const r = rows[0];
+  state.current = r;
+
+  document.getElementById('d-title').textContent = r.invoice_number || '(no invoice number)';
+  document.getElementById('d-sub').innerHTML =
+    `${typeBadge(r.invoice_type)} <span class="muted mono" style="margin-left:8px">${esc(r.source_filename || 'no source file')}</span>` +
+    (r.created_at ? ` <span class="muted" style="margin-left:8px">stored ${esc(relTime(r.created_at))}</span>` : '');
+
+  /* overview */
+  const addr = (city, st, zip, cc) => [city, st, zip, cc].filter(Boolean).join(', ') || '—';
+  document.getElementById('p-overview').innerHTML = `
+    <div class="panel" style="margin-bottom:14px">
+      <h2>Totals</h2>
+      <div class="panel-body">
+        <div class="totals-line"><span>Subtotal</span><span class="num">${esc(money(r.subtotal, r.currency))}</span></div>
+        <div class="totals-line"><span>Charges</span><span class="num">${esc(money(r.total_charges, r.currency))}</span></div>
+        <div class="totals-line"><span>Tax</span><span class="num">${esc(money(r.total_tax, r.currency))}</span></div>
+        <div class="totals-line"><span>Grand total <span class="muted">(this invoice)</span></span><span class="num">${esc(money(r.grand_total, r.currency))}</span></div>
+        <div class="totals-line"><span>Prior balance</span><span class="num">${esc(money(r.prior_balance, r.currency))}</span></div>
+        <div class="totals-line"><span>Amount paid</span><span class="num">${esc(money(r.amount_paid, r.currency))}</span></div>
+        <div class="totals-line grand"><span>Total due</span><span class="num">${esc(money(r.total_due, r.currency))}</span></div>
+      </div>
+    </div>
+
+    <div class="party-grid">
+      <div class="panel" style="margin:0"><h2>Seller</h2><div class="panel-body">
+        <dl class="kv">
+          <dt>Name</dt><dd>${esc(r.seller_name || '—')}</dd>
+          <dt>Tax ID</dt><dd class="mono">${esc(r.seller_tax_id || '—')}</dd>
+          <dt>Email</dt><dd>${esc(r.seller_email || '—')}</dd>
+          <dt>Phone</dt><dd>${esc(r.seller_phone || '—')}</dd>
+          <dt>Location</dt><dd>${esc(addr(r.seller_city, r.seller_state, r.seller_postal_code, r.seller_country_code))}</dd>
+        </dl></div></div>
+      <div class="panel" style="margin:0"><h2>Buyer</h2><div class="panel-body">
+        <dl class="kv">
+          <dt>Name</dt><dd>${esc(r.buyer_name || '—')}</dd>
+          <dt>Tax ID</dt><dd class="mono">${esc(r.buyer_tax_id || '—')}</dd>
+          <dt>Email</dt><dd>${esc(r.buyer_email || '—')}</dd>
+          <dt>Location</dt><dd>${esc(addr(r.buyer_city, r.buyer_state, r.buyer_postal_code, r.buyer_country_code))}</dd>
+        </dl></div></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px"><h2>Document</h2><div class="panel-body">
+      <dl class="kv">
+        <dt>Issued</dt><dd>${esc(dateStr(r.issue_date))}</dd>
+        <dt>Due</dt><dd>${esc(dateStr(r.due_date))} ${dueStatus(r)}</dd>
+        <dt>Currency</dt><dd class="mono">${esc(r.currency || '—')}</dd>
+        <dt>PO number</dt><dd class="mono">${esc(r.purchase_order_number || '—')}</dd>
+        <dt>Source file</dt><dd class="mono">${esc(r.source_filename || '—')}</dd>
+        <dt>Model</dt><dd class="mono">${esc(r.model || '—')}</dd>
+      </dl></div></div>`;
+
+  /* line items */
+  const items = Array.isArray(r.line_items) ? r.line_items : [];
+  const charges = Array.isArray(r.charges) ? r.charges : [];
+  const sum = items.reduce((a, li) => a + (Number(li.lineTotal) || 0), 0);
+  const variance = r.subtotal !== null && r.subtotal !== undefined ? Number(r.subtotal) - sum : null;
+
+  let linesHtml = '';
+  if (!items.length) {
+    linesHtml = `<div class="panel"><div class="empty"><strong>No line items</strong>The extraction returned an empty array for this invoice.</div></div>`;
+  } else {
+    linesHtml = `
+    <div class="panel"><h2>Line items<span class="hint">${items.length} row${items.length === 1 ? '' : 's'}</span></h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:34px">#</th><th>Description</th><th class="num">Qty</th><th>Unit</th><th class="num">Unit price</th><th class="num">Line total</th></tr></thead>
+        <tbody>${items.map((li, i) => `
+          <tr>
+            <td class="muted mono">${li.lineNumber ?? (i + 1)}</td>
+            <td>${esc(li.description || '—')}${li.periodStart || li.periodEnd
+              ? `<div class="muted" style="font-size:11.5px">${esc(dateStr(li.periodStart))} → ${esc(dateStr(li.periodEnd))}</div>` : ''}</td>
+            <td class="num">${esc(num(li.quantity, 2))}</td>
+            <td class="mono muted">${esc(li.unitOfMeasure || '—')}</td>
+            <td class="num">${esc(money(li.unitPrice, r.currency))}</td>
+            <td class="num"><strong>${esc(money(li.lineTotal, r.currency))}</strong></td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot><tr>
+          <td colspan="5" class="num" style="font-weight:600;border-top:2px solid var(--border)">Sum of line items</td>
+          <td class="num" style="font-weight:800;border-top:2px solid var(--border)">${esc(money(sum, r.currency))}</td>
+        </tr></tfoot>
+      </table></div>
+      ${variance !== null && Math.abs(variance) > cfg.varianceTolerance
+        ? `<div class="panel-body" style="border-top:1px solid var(--border)">
+             <span class="pill bad">Variance ${esc(num(variance))}</span>
+             <span class="muted" style="margin-left:8px">Printed subtotal is ${esc(money(r.subtotal, r.currency))}; the line items sum to ${esc(money(sum, r.currency))}.</span>
+           </div>` : ''}
+    </div>`;
+  }
+  if (charges.length) {
+    linesHtml += `
+    <div class="panel"><h2>Charges<span class="hint">document level</span></h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Reason</th><th class="num">Amount</th></tr></thead>
+        <tbody>${charges.map(c => `<tr><td>${esc(c.reason || '—')}</td><td class="num">${esc(money(c.amount, r.currency))}</td></tr>`).join('')}</tbody>
+      </table></div></div>`;
+  }
+  document.getElementById('p-lines').innerHTML = linesHtml;
+
+  /* raw json + text */
+  const jsonStr = r.raw_json ? JSON.stringify(r.raw_json, null, 2) : '';
+  document.getElementById('p-json').innerHTML = jsonStr
+    ? `<div style="display:flex;gap:8px;margin-bottom:10px"><button class="mini" id="copy-json">Copy JSON</button>
+         <span class="muted" style="align-self:center;font-size:12px">${jsonStr.length.toLocaleString()} characters</span></div>
+       <pre class="raw">${esc(jsonStr)}</pre>`
+    : `<div class="empty"><strong>No raw JSON stored</strong>The raw_json column is empty for this row.</div>`;
+
+  document.getElementById('p-text').innerHTML = r.raw_text
+    ? `<div style="display:flex;gap:8px;margin-bottom:10px"><button class="mini" id="copy-text">Copy text</button>
+         <span class="muted" style="align-self:center;font-size:12px">${String(r.raw_text).length.toLocaleString()} characters from the parser</span></div>
+       <pre class="raw rawtext">${esc(r.raw_text)}</pre>`
+    : `<div class="empty"><strong>No parsed text stored</strong>The raw_text column is empty. Check that the parser output is mapped into the insert.</div>`;
+
+  document.getElementById('copy-json')?.addEventListener('click', () => copy(jsonStr, 'JSON'));
+  document.getElementById('copy-text')?.addEventListener('click', () => copy(String(r.raw_text || ''), 'text'));
+
+  showTab('p-overview');
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer').setAttribute('aria-hidden', 'false');
+  document.getElementById('scrim').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer').setAttribute('aria-hidden', 'true');
+  document.getElementById('scrim').classList.remove('open');
+}
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.pane === id));
+  document.querySelectorAll('.tabpane').forEach(p => p.classList.toggle('active', p.id === id));
+}
+async function copy(text, what) {
+  try { await navigator.clipboard.writeText(text); log('ok', `Copied ${what} to the clipboard.`); }
+  catch { log('warn', 'Clipboard blocked by the browser. Select the text and copy manually.'); }
+}
+
+/* ---------- auto refresh ---------- */
+function startAuto() {
+  stopAuto();
+  refreshTimer = setInterval(() => { if (sql) refreshAll(); }, cfg.refreshSeconds * 1000);
+  log('info', `Auto-refresh on, every ${cfg.refreshSeconds}s.`);
+}
+function stopAuto() { if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; } }
+
+/* ---------- wiring ---------- */
+document.getElementById('connect').addEventListener('click', connect);
+document.getElementById('disconnect').addEventListener('click', disconnect);
+document.getElementById('apply').addEventListener('click', async () => {
+  readSettings();
+  state.page = 1;
+  log('info', `Settings applied — ${cfg.schema}.${cfg.table}, ${cfg.pageSize}/page, ${cfg.trendMonths}mo trend, tolerance ${cfg.varianceTolerance}.`);
+  if (document.getElementById('auto').checked) startAuto();
+  showView('dash');
+  await refreshAll();
+});
+document.getElementById('conn-string').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+document.getElementById('refresh').addEventListener('click', refreshAll);
+document.getElementById('auto').addEventListener('change', e => { readSettings(); e.target.checked ? startAuto() : stopAuto(); });
+
+document.getElementById('search').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  const v = e.target.value.trim();
+  searchTimer = setTimeout(() => { state.search = v; state.page = 1; loadList(); }, 280);
+});
+document.getElementById('prev').addEventListener('click', () => { state.page--; loadList(); });
+document.getElementById('next').addEventListener('click', () => { state.page++; loadList(); });
+document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', () => {
+  const col = th.dataset.sort;
+  if (state.sort === col) state.order = state.order === 'asc' ? 'desc' : 'asc';
+  else { state.sort = col; state.order = 'desc'; }
+  loadList();
+}));
+
+document.body.addEventListener('click', e => {
+  const tr = e.target.closest('tr.clickable');
+  if (tr && tr.dataset.id) openInvoice(tr.dataset.id);
+});
+document.getElementById('d-close').addEventListener('click', closeDrawer);
+document.getElementById('scrim').addEventListener('click', closeDrawer);
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.pane)));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+document.querySelectorAll('.sidebar nav a').forEach(a => a.addEventListener('click', () => {
+  if (a.dataset.view === 'dash' && !sql) { log('warn', 'Connect to a database first.'); showView('settings'); return; }
+  showView(a.dataset.view, a.dataset.jump);
+}));
+document.getElementById('back-to-dash').addEventListener('click', () => showView('dash'));
+
+const consoleEl = document.getElementById('console');
+document.getElementById('console-head').addEventListener('click', e => {
+  if (e.target.tagName === 'BUTTON' && e.target.id !== 'log-toggle') return;
+  consoleEl.classList.toggle('collapsed');
+  document.getElementById('log-toggle').textContent = consoleEl.classList.contains('collapsed') ? 'Show' : 'Hide';
+});
+document.getElementById('log-clear').addEventListener('click', () => { logBody.innerHTML = ''; logLines.length = 0; document.getElementById('log-dot').className = 'dot'; });
+document.getElementById('log-copy').addEventListener('click', () => copy(logLines.join('\n'), 'log'));
+
+log('info', 'Ready. Paste a Neon connection string and press Connect.');
+if (DEFAULTS.connectionString) { document.getElementById('conn-string').value = DEFAULTS.connectionString; connect(); }
+</script>
+</body>
+</html>

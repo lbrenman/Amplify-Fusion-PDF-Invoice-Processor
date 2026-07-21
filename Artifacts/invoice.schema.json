@@ -1,0 +1,238 @@
+{
+  "description": "Invoice schema sized for Groq structured outputs. Every root property is expected in the response; emit null where a value is not present in the document.",
+  "type": "object",
+  "required": [
+    "invoiceNumber",
+    "issueDate",
+    "currency",
+    "seller",
+    "buyer",
+    "lineItems",
+    "totals"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "invoiceNumber": {
+      "type": "string",
+      "description": "Supplier-assigned unique invoice identifier."
+    },
+    "invoiceType": {
+      "type": "string",
+      "description": "Nature of the document.",
+      "enum": [
+        "invoice",
+        "credit_note",
+        "debit_note",
+        "proforma",
+        "self_billed"
+      ]
+    },
+    "issueDate": {
+      "type": "string",
+      "description": "Date the invoice was issued (YYYY-MM-DD)."
+    },
+    "dueDate": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "description": "ISO 4217 alphabetic currency code."
+    },
+    "purchaseOrderNumber": {
+      "type": "string"
+    },
+    "seller": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "taxId": {
+          "type": "string",
+          "description": "VAT/GST/EIN registration number."
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "address": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "line1": {
+              "type": "string"
+            },
+            "line2": {
+              "type": "string"
+            },
+            "city": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "postalCode": {
+              "type": "string"
+            },
+            "countryCode": {
+              "type": "string",
+              "description": "ISO 3166-1 alpha-2 country code."
+            }
+          }
+        }
+      }
+    },
+    "buyer": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "taxId": {
+          "type": "string",
+          "description": "VAT/GST/EIN registration number."
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "address": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "line1": {
+              "type": "string"
+            },
+            "line2": {
+              "type": "string"
+            },
+            "city": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "postalCode": {
+              "type": "string"
+            },
+            "countryCode": {
+              "type": "string",
+              "description": "ISO 3166-1 alpha-2 country code."
+            }
+          }
+        }
+      }
+    },
+    "lineItems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "description",
+          "quantity",
+          "unitPrice",
+          "lineTotal"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "lineNumber": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unitOfMeasure": {
+            "type": "string",
+            "description": "e.g. EA, HUR, KGM."
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "lineTotal": {
+            "type": "number",
+            "description": "Net amount plus line-level tax and charges."
+          },
+          "periodStart": {
+            "type": "string"
+          },
+          "periodEnd": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": [
+        "subtotal",
+        "totalDue"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "subtotal": {
+          "type": "number",
+          "description": "Sum of line net amounts before document-level allowances/charges and tax."
+        },
+        "totalCharges": {
+          "type": "number",
+          "description": "Monetary amount in the invoice currency."
+        },
+        "totalTax": {
+          "type": "number",
+          "description": "Monetary amount in the invoice currency."
+        },
+        "grandTotal": {
+          "type": "number",
+          "description": "Invoice total including tax."
+        },
+        "amountPaid": {
+          "type": "number",
+          "description": "Monetary amount in the invoice currency."
+        },
+        "totalDue": {
+          "type": "number",
+          "description": "Grand total less amount paid."
+        },
+        "priorBalance": {
+          "type": "number",
+          "description": "Outstanding balance carried forward from a previous invoice, if shown."
+        }
+      }
+    },
+    "charges": {
+      "type": "array",
+      "description": "Document-level surcharges (freight, handling, etc.).",
+      "items": {
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Monetary amount in the invoice currency."
+          }
+        }
+      }
+    }
+  }
+}
