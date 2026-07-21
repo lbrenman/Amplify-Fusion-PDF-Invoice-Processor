@@ -2,8 +2,8 @@
 
 An Amplify Fusion PDF Invoice Processor demonstration. This project demonstrates an end-to-end pipeline for automatically extracting structured data from PDF invoices eliminating manual data entry and enabling downstream automation. Specifically inserting into a Database.
 
-* [Demo Video]()
-* [How It Was Built Video]()
+* [Demo Video](https://github.com/lbrenman/Amplify-Fusion-PDF-Invoice-Processor)
+* [How It Was Built Video](https://github.com/lbrenman/Amplify-Fusion-PDF-Invoice-Processor)
 
 PDF documents are ingested via S3 or SFTP and orchestrated by Axway Amplify Fusion, which manages the multi-step flow. LlamaParse handles the first stage — converting raw PDF files into clean, readable text. This is a deliberate architectural decision: PDF-to-text extraction is a hard problem on its own, involving layout parsing, table reconstruction, and OCR for scanned documents. LlamaParse is purpose-built for this, using vision-language models to preserve document structure in a way that generic text extraction cannot.
 
